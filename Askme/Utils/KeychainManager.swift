@@ -15,16 +15,19 @@ class KeychainManager {
     
     private init() {}
     
-    /// Store a field value in Keychain
-    func store(field: FieldType, value: String) throws {
+    /// Store a field value in Keychain (per ENS name)
+    func store(field: FieldType, value: String, ensName: String) throws {
         guard let data = value.data(using: .utf8) else {
             throw KeychainError.dataConversionError
         }
         
+        // Store field per ENS name: "field:ensName:fieldType"
+        let account = "field:\(ensName):\(field.rawValue)"
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: field.rawValue,
+            kSecAttrAccount as String: account,
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
@@ -38,12 +41,15 @@ class KeychainManager {
         }
     }
     
-    /// Retrieve a field value from Keychain
-    func retrieve(field: FieldType) throws -> String? {
+    /// Retrieve a field value from Keychain (per ENS name)
+    func retrieve(field: FieldType, ensName: String) throws -> String? {
+        // Retrieve field per ENS name: "field:ensName:fieldType"
+        let account = "field:\(ensName):\(field.rawValue)"
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: field.rawValue,
+            kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -67,12 +73,15 @@ class KeychainManager {
         return value
     }
     
-    /// Delete a field value from Keychain
-    func delete(field: FieldType) throws {
+    /// Delete a field value from Keychain (per ENS name)
+    func delete(field: FieldType, ensName: String) throws {
+        // Delete field per ENS name: "field:ensName:fieldType"
+        let account = "field:\(ensName):\(field.rawValue)"
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: field.rawValue
+            kSecAttrAccount as String: account
         ]
         
         let status = SecItemDelete(query as CFDictionary)

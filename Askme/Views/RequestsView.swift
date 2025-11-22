@@ -50,6 +50,7 @@ struct RequestsView: View {
                                         ForEach(viewModel.pendingRequests) { request in
                                             RequestCard(
                                                 request: request,
+                                                subjectEns: subjectEns,
                                                 onApprove: nil,
                                                 onApproveWithMode: { fieldValue, revealMode in
                                                     viewModel.approveRequest(request.id, fieldValue: fieldValue, subjectEns: subjectEns, revealMode: revealMode)
@@ -69,7 +70,7 @@ struct RequestsView: View {
                                             .padding(.horizontal)
                                         
                                         ForEach(viewModel.otherRequests) { request in
-                                            RequestCard(request: request, onApprove: nil, onApproveWithMode: nil, onReject: nil)
+                                            RequestCard(request: request, subjectEns: subjectEns, onApprove: nil, onApproveWithMode: nil, onReject: nil)
                                         }
                                     }
                                 }
@@ -107,6 +108,7 @@ struct RequestsView: View {
 
 struct RequestCard: View {
     let request: VerificationRequest
+    let subjectEns: String
     let onApprove: ((String) -> Void)?
     let onApproveWithMode: ((String, String) -> Void)?
     let onReject: (() -> Void)?
@@ -274,8 +276,14 @@ struct RequestCard: View {
             return
         }
         
+        guard !subjectEns.isEmpty else {
+            hasCheckedField = true
+            fieldExists = false
+            return
+        }
+        
         do {
-            if let value = try KeychainManager.shared.retrieve(field: fieldType), !value.isEmpty {
+            if let value = try KeychainManager.shared.retrieve(field: fieldType, ensName: subjectEns), !value.isEmpty {
                 fieldValue = value
                 fieldExists = true
             } else {

@@ -23,37 +23,26 @@ struct MyFieldsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Select ENS name and update required fields")) {
-                    // ENS Names Chips
-                    if ensNames.isEmpty && !isLoadingEnsNames {
+                Section(header: Text("ENS name and wallet")) {
+                    // Show primary ENS name (read-only for hackathon)
+                    if let primaryEns = ensNames.first {
+                        HStack {
+                            Image(systemName: "person.circle.fill")
+                                .foregroundColor(.blue)
+                            Text(primaryEns)
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    } else if !isLoadingEnsNames {
                         HStack {
                             Image(systemName: "info.circle.fill")
                                 .foregroundColor(.blue)
-                            Text(walletManager.isConnected ? "No ENS names found for this wallet" : "Connect wallet to see your ENS names")
+                            Text(walletManager.isConnected ? "No ENS name found for this wallet" : "Connect wallet to see your ENS name")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
-                    } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                // ENS name chips
-                                ForEach(ensNames, id: \.self) { ensName in
-                                    Button(action: {
-                                        selectEns(ensName)
-                                    }) {
-                                        Text(ensName)
-                                            .font(.system(size: 14, weight: .medium))
-                                            .foregroundColor(selectedEns == ensName ? .white : .primary)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(selectedEns == ensName ? Color.blue : Color.gray.opacity(0.1))
-                                            .cornerRadius(16)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
                     }
                     
                     if isLoadingEnsNames {
@@ -123,7 +112,7 @@ struct MyFieldsView: View {
                             fieldType: fieldType,
                             value: viewModel.getValue(for: fieldType),
                             onSave: { newValue in
-                                viewModel.save(field: fieldType, value: newValue)
+                                viewModel.save(field: fieldType, value: newValue, ensName: selectedEns)
                             },
                             isDisabled: selectedEns.isEmpty
                         )
@@ -169,7 +158,9 @@ struct MyFieldsView: View {
                 loadEnsNames()
                 loadSelectedEns()
                 loadVerifiedOwner()
-                viewModel.loadFields()
+                if !selectedEns.isEmpty {
+                    viewModel.loadFields(for: selectedEns)
+                }
                 
                 // Fetch ENS names when wallet connects
                 if walletManager.isConnected {
@@ -216,7 +207,12 @@ struct MyFieldsView: View {
     
     private func loadSelectedEns() {
         do {
-            selectedEns = try KeychainManager.shared.retrieveSubjectEns() ?? ""
+            let savedEns = try KeychainManager.shared.retrieveSubjectEns() ?? ""
+            selectedEns = savedEns
+            // Load fields for the saved ENS name
+            if !savedEns.isEmpty {
+                viewModel.loadFields(for: savedEns)
+            }
         } catch {
             print("Error loading selected ENS: \(error)")
             selectedEns = ""
@@ -224,10 +220,20 @@ struct MyFieldsView: View {
     }
     
     private func selectEns(_ ensName: String) {
+        // Only reload if switching to a different ENS name
+        guard selectedEns != ensName else { return }
+        
         selectedEns = ensName
         try? KeychainManager.shared.storeSubjectEns(ensName)
         verifiedOwner = nil
         try? KeychainManager.shared.deleteVerifiedEnsOwner()
+        
+        // Clear fields first to ensure UI updates
+        viewModel.fields.removeAll()
+        
+        // Reload fields for the selected ENS name
+        viewModel.loadFields(for: ensName)
+        print("Switched to ENS: \(ensName), loading fields...")
     }
     
     private func fetchEnsNamesFromWallet() {
@@ -243,14 +249,14 @@ struct MyFieldsView: View {
                     ensNames = fetchedNames
                     try? KeychainManager.shared.storeEnsNames(ensNames)
                     
-                    // Auto-select first name if none selected
-                    if selectedEns.isEmpty, let first = ensNames.first {
-                        selectEns(first)
-                    } else if !selectedEns.isEmpty && !ensNames.contains(selectedEns) {
-                        // If current selection is not in the fetched list, clear it
-                        selectedEns = ""
-                        try? KeychainManager.shared.storeSubjectEns("")
-                    }
+                           // Auto-select primary name (first in list)
+                           if let primaryEns = ensNames.first {
+                               selectEns(primaryEns)
+                           } else {
+                               // No ENS name found, clear selection
+                               selectedEns = ""
+                               try? KeychainManager.shared.storeSubjectEns("")
+                           }
                     
                     isLoadingEnsNames = false
                 }
@@ -493,22 +499,49 @@ struct FieldRowView: View {
 @MainActor
 class FieldsViewModel: ObservableObject {
     @Published var fields: [FieldType: String] = [:]
+    var currentEnsName: String = ""
     
-    func loadFields() {
+    func loadFields(for ensName: String) {
+        print("🔄 loadFields called for ENS: \(ensName)")
+        currentEnsName = ensName
+        
+        // Clear all fields first to ensure UI updates
+        let oldFields = fields
+        fields.removeAll()
+        
+        // Force UI update by publishing the change
+        objectWillChange.send()
+        
+        guard !ensName.isEmpty else {
+            print("⚠️ ENS name is empty, not loading fields")
+            return
+        }
+        
+        // Load fields for the new ENS name
+        var newFields: [FieldType: String] = [:]
         for fieldType in FieldType.allCases {
             do {
-                if let value = try KeychainManager.shared.retrieve(field: fieldType) {
-                    fields[fieldType] = value
+                if let value = try KeychainManager.shared.retrieve(field: fieldType, ensName: ensName) {
+                    newFields[fieldType] = value
+                    print("✅ Loaded \(fieldType.rawValue) = \(value) for \(ensName)")
+                } else {
+                    print("ℹ️ No value found for \(fieldType.rawValue) in \(ensName)")
                 }
             } catch {
-                print("Error loading field \(fieldType.rawValue): \(error)")
+                print("❌ Error loading field \(fieldType.rawValue): \(error)")
             }
         }
+        
+        // Update fields all at once to trigger UI update
+        fields = newFields
+        print("📊 Total fields loaded: \(fields.count) for \(ensName)")
     }
     
-    func save(field: FieldType, value: String) {
+    func save(field: FieldType, value: String, ensName: String) {
+        guard !ensName.isEmpty else { return }
+        
         do {
-            try KeychainManager.shared.store(field: field, value: value)
+            try KeychainManager.shared.store(field: field, value: value, ensName: ensName)
             fields[field] = value
         } catch {
             print("Error saving field \(field.rawValue): \(error)")

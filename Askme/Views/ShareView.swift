@@ -38,7 +38,14 @@ struct ShareView: View {
             .navigationTitle("Share")
             .onAppear {
                 loadSubjectEns()
-                viewModel.loadFields()
+                if !subjectEns.isEmpty {
+                    viewModel.loadFields(for: subjectEns)
+                }
+            }
+            .onChange(of: subjectEns) { oldValue, newValue in
+                if !newValue.isEmpty {
+                    viewModel.loadFields(for: newValue)
+                }
             }
         }
     }
