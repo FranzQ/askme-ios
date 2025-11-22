@@ -36,19 +36,58 @@ struct FieldValue: Codable {
 
 struct Verification: Codable, Identifiable {
     let id: String
-    let verifierAddress: String
     let verifiedEns: String
     let field: String
-    let valueHash: String
+    let fieldHash: String
+    let verifierType: String
+    let verifierId: String
+    let ensName: String?
+    let ownerSnapshot: String?
+    let expirySnapshot: String? // ISO8601 date string or null
     let methodUrl: String?
-    let methodMeta: [String: AnyCodable]?
-    let issuedAt: String
-    let expiresAt: String
     let status: String
-    let verifierEnsSnapshot: String?
+    let sig: String?
+    let attestationUid: String?
+    let createdAt: String // ISO8601 date string
+    let revokedAt: String? // ISO8601 date string or null
     let isValid: Bool?
-    let isExpired: Bool?
     let isEnsValid: Bool?
+    let isActive: Bool?
+    let ownershipMatches: Bool?
+    let expiryValid: Bool?
+    let verifierValid: Bool?
+    let attestationExplorerUrl: String?
+    
+    // Computed properties for backward compatibility
+    var verifierAddress: String {
+        verifierId
+    }
+    
+    var valueHash: String {
+        fieldHash
+    }
+    
+    var verifierEnsSnapshot: String? {
+        ensName
+    }
+    
+    var issuedAt: String {
+        createdAt
+    }
+    
+    var expiresAt: String {
+        expirySnapshot ?? ""
+    }
+    
+    var isExpired: Bool? {
+        guard let expirySnapshot = expirySnapshot else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let expiryDate = formatter.date(from: expirySnapshot) {
+            return expiryDate < Date()
+        }
+        return nil
+    }
 }
 
 // Helper for JSON decoding with Any values

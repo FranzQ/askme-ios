@@ -25,10 +25,17 @@ struct VerificationsView: View {
                         Text(error.localizedDescription)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Button("Retry") {
-                            Task {
-                                await viewModel.fetchVerifications(for: subjectEns)
+                            .multilineTextAlignment(.center)
+                        if !subjectEns.isEmpty {
+                            Button("Retry") {
+                                Task {
+                                    await viewModel.fetchVerifications(for: subjectEns)
+                                }
                             }
+                        } else {
+                            Text("Please select an ENS name in the 'My Fields' tab first.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding()
@@ -53,6 +60,8 @@ struct VerificationsView: View {
                     Task {
                         await viewModel.fetchVerifications(for: subjectEns)
                     }
+                } else {
+                    viewModel.error = NSError(domain: "VerificationsView", code: 1, userInfo: [NSLocalizedDescriptionKey: "No ENS name selected. Please select an ENS name in the 'My Fields' tab first."])
                 }
             }
             .refreshable {
@@ -164,12 +173,6 @@ struct VerificationCard: View {
                     }
                     .foregroundColor(.blue)
                 }
-            }
-            
-            if let countVerified = verification.methodMeta?["countVerified"]?.value as? Int {
-                Text("Total verified: \(countVerified)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
             
             Text("Issued: \(formatDate(verification.issuedAt))")

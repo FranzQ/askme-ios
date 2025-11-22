@@ -32,9 +32,17 @@ class APIClient {
         
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let verifications = try decoder.decode([Verification].self, from: data)
         
-        return verifications
+        do {
+            let verifications = try decoder.decode([Verification].self, from: data)
+            return verifications
+        } catch {
+            print("Decoding error: \(error)")
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Response data: \(jsonString)")
+            }
+            throw APIError.decodingError
+        }
     }
     
     /// Fetch verification requests for an ENS name

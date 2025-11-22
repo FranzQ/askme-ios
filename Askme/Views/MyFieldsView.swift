@@ -320,7 +320,7 @@ struct MyFieldsView: View {
             do {
                 let info = try await APIClient.shared.resolveEnsOwner(selectedEns)
                 
-                guard let ensOwner = info.owner, info.isValid else {
+                guard info.owner != nil, info.isValid else {
                     await MainActor.run {
                         verificationError = "ENS name not found or expired"
                         isVerifying = false
@@ -506,7 +506,6 @@ class FieldsViewModel: ObservableObject {
         currentEnsName = ensName
         
         // Clear all fields first to ensure UI updates
-        let oldFields = fields
         fields.removeAll()
         
         // Force UI update by publishing the change
