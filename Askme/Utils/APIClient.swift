@@ -113,6 +113,28 @@ class APIClient {
         }
     }
     
+    /// Fetch ENS names for an address
+    func fetchEnsNames(for address: String) async throws -> [String] {
+        guard let url = URL(string: "\(baseURL)/api/ensNames/\(address)") else {
+            throw APIError.invalidURL
+        }
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.httpError(httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        let result = try decoder.decode(EnsNamesResponse.self, from: data)
+        
+        return result.names
+    }
+    
     /// Resolve ENS owner address
     func resolveEnsOwner(_ ensName: String) async throws -> EnsOwnerInfo {
         guard let url = URL(string: "\(baseURL)/api/resolveOwner/\(ensName)") else {
@@ -135,6 +157,10 @@ class APIClient {
         
         return info
     }
+}
+
+struct EnsNamesResponse: Codable {
+    let names: [String]
 }
 
 struct EnsOwnerInfo: Codable {
