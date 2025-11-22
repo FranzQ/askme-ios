@@ -198,6 +198,54 @@ class KeychainManager {
             throw KeychainError.deleteError(status)
         }
     }
+    
+    /// Store list of ENS names
+    func storeEnsNames(_ names: [String]) throws {
+        let data = try JSONEncoder().encode(names)
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "ensNames",
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        
+        SecItemDelete(query as CFDictionary)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        if status != errSecSuccess {
+            throw KeychainError.storeError(status)
+        }
+    }
+    
+    /// Retrieve list of ENS names
+    func retrieveEnsNames() throws -> [String] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "ensNames",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        if status == errSecItemNotFound {
+            return []
+        }
+        
+        if status != errSecSuccess {
+            throw KeychainError.retrieveError(status)
+        }
+        
+        guard let data = result as? Data else {
+            throw KeychainError.dataConversionError
+        }
+        
+        return try JSONDecoder().decode([String].self, from: data)
+    }
 }
 
 enum KeychainError: Error {
