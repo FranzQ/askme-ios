@@ -24,15 +24,15 @@ struct ContentView: View {
                 }
                 .tag(1)
             
-            ShareView()
-                .tabItem {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .tag(2)
-            
             VerificationsView()
                 .tabItem {
                     Label("Verifications", systemImage: "checkmark.seal.fill")
+                }
+                .tag(2)
+            
+            LogoutView()
+                .tabItem {
+                    Label("Logout", systemImage: "arrow.right.square")
                 }
                 .tag(3)
         }

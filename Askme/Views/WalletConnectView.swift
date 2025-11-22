@@ -83,37 +83,33 @@ struct WalletConnectView: View {
                     }
                     .padding()
                 } else {
-                    Button(action: {
-                        connectWallet()
-                    }) {
-                        HStack {
-                            Image(systemName: "qrcode")
-                            Text("Connect Wallet")
+                    VStack(spacing: 16) {
+                        Text("Demo Mode")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 8)
+                        
+                        Button(action: {
+                            connectWallet()
+                        }) {
+                            HStack {
+                                Image(systemName: "wallet.pass.fill")
+                                Text("Connect Mock Wallet")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(12)
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-                    
-                    if walletManager.useMockMode {
-                        VStack(spacing: 8) {
-                            Text("Demo Mode")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.orange)
-                            Text("Using mock wallet connection for demo. Add WalletConnect SDK for production.")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
                         .padding(.horizontal)
+                        
+                        Text("Note: This is a demo mode. Real WalletConnect integration coming soon.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
                 }
                 

@@ -26,7 +26,9 @@ struct VerificationsView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         Button("Retry") {
-                            viewModel.fetchVerifications(for: subjectEns)
+                            Task {
+                                await viewModel.fetchVerifications(for: subjectEns)
+                            }
                         }
                     }
                     .padding()
@@ -48,7 +50,9 @@ struct VerificationsView: View {
             .onAppear {
                 loadSubjectEns()
                 if !subjectEns.isEmpty {
-                    viewModel.fetchVerifications(for: subjectEns)
+                    Task {
+                        await viewModel.fetchVerifications(for: subjectEns)
+                    }
                 }
             }
             .refreshable {
@@ -214,24 +218,24 @@ class VerificationsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
     
-    func fetchVerifications(for ensName: String) {
+    func fetchVerifications(for ensName: String) async {
         guard !ensName.isEmpty else { return }
         
-        isLoading = true
-        error = nil
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
         
-        Task {
-            do {
-                let fetched = try await APIClient.shared.fetchVerifications(for: ensName)
-                await MainActor.run {
-                    self.verifications = fetched
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error
-                    self.isLoading = false
-                }
+        do {
+            let fetched = try await APIClient.shared.fetchVerifications(for: ensName)
+            await MainActor.run {
+                self.verifications = fetched
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error
+                self.isLoading = false
             }
         }
     }

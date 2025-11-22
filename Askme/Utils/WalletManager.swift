@@ -2,13 +2,13 @@
 //  WalletManager.swift
 //  AskMe
 //
-//  Wallet manager using Reown AppKit (WalletConnect)
+//  Simple mock wallet manager for hackathon demo
+//  TODO: Replace with real WalletConnect integration later
 //
 
 import Foundation
 import SwiftUI
 import Combine
-import ReownAppKit
 
 @MainActor
 class WalletManager: ObservableObject {
@@ -19,88 +19,62 @@ class WalletManager: ObservableObject {
     @Published var connectedWalletName: String? = nil
     @Published var isConnecting = false
     @Published var connectionError: String? = nil
-    @Published var pairingURI: String? = nil
     
-    // Get your project ID from https://cloud.reown.com
-    private let projectId = "b0f92f16d87af63fe92ccd4a634bdfce"
+    // Real Sepolia wallet address with ENS names for demo
+    private let demoWalletAddress = "0xC273AeC12Ea77df19c3C60818c962f7624Dc764A"
     
     private init() {
-        initializeAppKit()
-    }
-    
-    private func initializeAppKit() {
-        // Configure AppKit with project ID
-        // Note: This is a simplified version - check ReownAppKit documentation for exact API
-        // You may need to adjust the configuration based on the actual ReownAppKit API
-        
-        // Basic configuration - adjust based on actual API
-        // AppKit.configure(projectId: projectId, ...)
-        
-        // Set up session event handlers
-        setupEventHandlers()
-        
-        // Check for existing sessions
-        checkExistingSessions()
-    }
-    
-    private var cancellables = Set<AnyCancellable>()
-    
-    private func setupEventHandlers() {
-        // Listen for session events
-        // Note: Adjust event handling based on actual ReownAppKit API
-        // This is a placeholder - check ReownAppKit documentation for correct event handling
-    }
-    
-    private func checkExistingSessions() {
-        // Check if there's an active session
-        // Note: Adjust based on actual ReownAppKit API
-        // This is a placeholder - check ReownAppKit documentation for correct session checking
+        // Check if we have a saved wallet address, otherwise use demo address
+        if let savedAddress = UserDefaults.standard.string(forKey: "mockWalletAddress") {
+            walletAddress = savedAddress
+            isConnected = true
+        }
     }
     
     func connect() async throws {
         isConnecting = true
         connectionError = nil
         
-        // TODO: Implement actual ReownAppKit connection
-        // Check ReownAppKit documentation for correct connection API
-        // Example structure (adjust based on actual API):
-        // let uri = try await AppKit.instance.connect(...)
-        // pairingURI = uri.absoluteString
+        // Simulate connection delay
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
         
-        // For now, throw not implemented error
+        // Use real Sepolia wallet address with ENS names
+        walletAddress = demoWalletAddress
+        connectedWalletName = "Demo Wallet (Sepolia)"
+        isConnected = true
         isConnecting = false
-        throw WalletError.notImplemented
+        
+        // Save for persistence
+        UserDefaults.standard.set(demoWalletAddress, forKey: "mockWalletAddress")
     }
     
     func disconnect() {
-        // TODO: Implement actual ReownAppKit disconnection
-        // Check ReownAppKit documentation for correct disconnection API
-        
         isConnected = false
         walletAddress = nil
         connectedWalletName = nil
         connectionError = nil
-        pairingURI = nil
+        UserDefaults.standard.removeObject(forKey: "mockWalletAddress")
     }
     
     func signMessage(_ message: String) async throws -> String {
-        guard isConnected, let address = walletAddress else {
+        guard isConnected, walletAddress != nil else {
             throw WalletError.notConnected
         }
         
-        // TODO: Implement actual ReownAppKit message signing
-        // Check ReownAppKit documentation for correct signing API
-        throw WalletError.notImplemented
+        // Mock signature - in real implementation, this would use WalletConnect signing
+        // For demo purposes, return a mock signature
+        let mockSignature = "0x" + (0..<130).map { _ in String("0123456789abcdef".randomElement()!) }.joined()
+        return mockSignature
     }
     
     func signTypedData(_ typedData: [String: Any]) async throws -> String {
-        guard isConnected, let address = walletAddress else {
+        guard isConnected, walletAddress != nil else {
             throw WalletError.notConnected
         }
         
-        // TODO: Implement actual ReownAppKit typed data signing
-        // Check ReownAppKit documentation for correct signing API
-        throw WalletError.notImplemented
+        // Mock signature - in real implementation, this would use WalletConnect signing
+        let mockSignature = "0x" + (0..<130).map { _ in String("0123456789abcdef".randomElement()!) }.joined()
+        return mockSignature
     }
     
     func createOwnershipMessage(ensName: String) -> String {

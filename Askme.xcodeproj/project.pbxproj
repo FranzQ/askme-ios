@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		1E9E5EAB2ED1F898009E7310 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5EAA2ED1F898009E7310 /* CryptoSwift */; };
+		1E9E5F462ED20CAD009E7310 /* ReownAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5F452ED20CAD009E7310 /* ReownAppKit */; };
+		1E9E5F482ED20CAD009E7310 /* ReownAppKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5F472ED20CAD009E7310 /* ReownAppKitUI */; };
+		1E9E5F4A2ED20CAD009E7310 /* ReownRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5F492ED20CAD009E7310 /* ReownRouter */; };
+		1E9E5F4C2ED20CAD009E7310 /* ReownWalletKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5F4B2ED20CAD009E7310 /* ReownWalletKit */; };
+		1E9E5F4E2ED20CAD009E7310 /* WalletConnect in Frameworks */ = {isa = PBXBuildFile; productRef = 1E9E5F4D2ED20CAD009E7310 /* WalletConnect */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +62,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				1E9E5EAB2ED1F898009E7310 /* CryptoSwift in Frameworks */,
+				1E9E5F462ED20CAD009E7310 /* ReownAppKit in Frameworks */,
+				1E9E5F4E2ED20CAD009E7310 /* WalletConnect in Frameworks */,
+				1E9E5F482ED20CAD009E7310 /* ReownAppKitUI in Frameworks */,
+				1E9E5F4C2ED20CAD009E7310 /* ReownWalletKit in Frameworks */,
+				1E9E5F4A2ED20CAD009E7310 /* ReownRouter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,6 +136,11 @@
 			name = Askme;
 			packageProductDependencies = (
 				1E9E5EAA2ED1F898009E7310 /* CryptoSwift */,
+				1E9E5F452ED20CAD009E7310 /* ReownAppKit */,
+				1E9E5F472ED20CAD009E7310 /* ReownAppKitUI */,
+				1E9E5F492ED20CAD009E7310 /* ReownRouter */,
+				1E9E5F4B2ED20CAD009E7310 /* ReownWalletKit */,
+				1E9E5F4D2ED20CAD009E7310 /* WalletConnect */,
 			);
 			productName = Askme;
 			productReference = 1E9E5DFC2ED1F4EC009E7310 /* Askme.app */;
@@ -211,6 +226,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				1E9E5EA82ED1F80B009E7310 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1E9E5DFD2ED1F4EC009E7310 /* Products */;
@@ -605,6 +621,14 @@
 				minimumVersion = 1.9.0;
 			};
 		};
+		1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/reown-com/reown-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -612,6 +636,31 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1E9E5EA82ED1F80B009E7310 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
 			productName = CryptoSwift;
+		};
+		1E9E5F452ED20CAD009E7310 /* ReownAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKit;
+		};
+		1E9E5F472ED20CAD009E7310 /* ReownAppKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKitUI;
+		};
+		1E9E5F492ED20CAD009E7310 /* ReownRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownRouter;
+		};
+		1E9E5F4B2ED20CAD009E7310 /* ReownWalletKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownWalletKit;
+		};
+		1E9E5F4D2ED20CAD009E7310 /* WalletConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E9E5F442ED20CAD009E7310 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnect;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

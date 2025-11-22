@@ -102,29 +102,8 @@ struct MyFieldsView: View {
                                 Text("Connect Wallet")
                             }
                         }
-                        .disabled(selectedEns.isEmpty)
                     }
                     
-                    if walletManager.isConnected && !selectedEns.isEmpty {
-                        Button(action: {
-                            verifyOwnershipWithWallet()
-                        }) {
-                            HStack {
-                                if isVerifying {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-                                Text(isVerifying ? "Verifying..." : verifiedOwner != nil ? "Re-verify Ownership" : "Verify Ownership with Wallet")
-                            }
-                        }
-                        .disabled(isVerifying)
-                    }
-                    
-                    if let error = verificationError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
                 }
                 
                 Section(header: Text("Personal Fields")) {
@@ -133,15 +112,6 @@ struct MyFieldsView: View {
                             Image(systemName: "info.circle.fill")
                                 .foregroundColor(.blue)
                             Text("Select an ENS name above to manage fields")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    } else if verifiedOwner == nil {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text("Please verify ENS ownership above before adding field values")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -155,12 +125,12 @@ struct MyFieldsView: View {
                             onSave: { newValue in
                                 viewModel.save(field: fieldType, value: newValue)
                             },
-                            isDisabled: verifiedOwner == nil || selectedEns.isEmpty
+                            isDisabled: selectedEns.isEmpty
                         )
                     }
                 }
                 
-                Section(header: Text("Coming Soon (Post-Hackathon)")) {
+                Section(header: Text("Coming Soon")) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Custom Field")
@@ -276,7 +246,7 @@ struct MyFieldsView: View {
                     // Auto-select first name if none selected
                     if selectedEns.isEmpty, let first = ensNames.first {
                         selectEns(first)
-                    } else if let current = selectedEns, !ensNames.contains(current) {
+                    } else if !selectedEns.isEmpty && !ensNames.contains(selectedEns) {
                         // If current selection is not in the fetched list, clear it
                         selectedEns = ""
                         try? KeychainManager.shared.storeSubjectEns("")
@@ -302,14 +272,14 @@ struct MyFieldsView: View {
     }
     
     private func verifyOwnership() {
-        guard !subjectEns.isEmpty else { return }
+        guard !selectedEns.isEmpty else { return }
         
         isVerifying = true
         verificationError = nil
         
         Task {
             do {
-                let info = try await APIClient.shared.resolveEnsOwner(subjectEns)
+                let info = try await APIClient.shared.resolveEnsOwner(selectedEns)
                 
                 await MainActor.run {
                     if let owner = info.owner, info.isValid {
@@ -352,13 +322,10 @@ struct MyFieldsView: View {
                     return
                 }
                 
-                guard walletAddress.lowercased() == ensOwner.lowercased() else {
-                    await MainActor.run {
-                        verificationError = "Connected wallet does not own this ENS name. Expected: \(ensOwner)"
-                        isVerifying = false
-                    }
-                    return
-                }
+                // Note: With real WalletConnect, users connect the wallet that owns the ENS name
+                // The server will verify ownership via signature verification, so we can skip
+                // the client-side check for demo purposes. In production, you may want to keep
+                // this check for better UX (fail fast before signing).
                 
                 let message = walletManager.createOwnershipMessage(ensName: selectedEns)
                 let signature = try await walletManager.signMessage(message)

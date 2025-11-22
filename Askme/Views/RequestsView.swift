@@ -26,7 +26,9 @@ struct RequestsView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         Button("Retry") {
-                            viewModel.fetchRequests(for: subjectEns)
+                            Task {
+                                await viewModel.fetchRequests(for: subjectEns)
+                            }
                         }
                     }
                     .padding()
@@ -81,7 +83,9 @@ struct RequestsView: View {
             .onAppear {
                 loadSubjectEns()
                 if !subjectEns.isEmpty {
-                    viewModel.fetchRequests(for: subjectEns)
+                    Task {
+                        await viewModel.fetchRequests(for: subjectEns)
+                    }
                 }
             }
             .refreshable {
@@ -369,24 +373,24 @@ class RequestsViewModel: ObservableObject {
         requests.filter { $0.status != "pending" }
     }
     
-    func fetchRequests(for ensName: String) {
+    func fetchRequests(for ensName: String) async {
         guard !ensName.isEmpty else { return }
         
-        isLoading = true
-        error = nil
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
         
-        Task {
-            do {
-                let fetched = try await APIClient.shared.fetchRequests(for: ensName)
-                await MainActor.run {
-                    self.requests = fetched
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = error
-                    self.isLoading = false
-                }
+        do {
+            let fetched = try await APIClient.shared.fetchRequests(for: ensName)
+            await MainActor.run {
+                self.requests = fetched
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error
+                self.isLoading = false
             }
         }
     }
@@ -401,8 +405,8 @@ class RequestsViewModel: ObservableObject {
                 try await APIClient.shared.approveRequest(id, fieldValue: fieldValue, subjectEns: subjectEns, verifiedEnsOwner: verifiedOwner, revealMode: revealMode)
                 await MainActor.run {
                     self.isLoading = false
-                    fetchRequests(for: subjectEns)
                 }
+                await fetchRequests(for: subjectEns)
             } catch {
                 await MainActor.run {
                     self.isLoading = false
@@ -417,11 +421,12 @@ class RequestsViewModel: ObservableObject {
         Task {
             do {
                 try await APIClient.shared.rejectRequest(id)
-                await MainActor.run {
+                let ensName = await MainActor.run {
                     self.isLoading = false
-                    if let firstRequest = requests.first {
-                        fetchRequests(for: firstRequest.verifiedEns)
-                    }
+                    return requests.first?.verifiedEns
+                }
+                if let ensName = ensName {
+                    await fetchRequests(for: ensName)
                 }
             } catch {
                 await MainActor.run {
