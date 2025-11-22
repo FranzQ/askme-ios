@@ -11,27 +11,61 @@ import Combine
 struct MyFieldsView: View {
     @StateObject private var viewModel = FieldsViewModel()
     @StateObject private var walletManager = WalletManager.shared
-    @State private var subjectEns: String = ""
+    @State private var ensNames: [String] = []
+    @State private var selectedEns: String = ""
     @State private var verifiedOwner: String? = nil
     @State private var isVerifying = false
     @State private var verificationError: String? = nil
     @State private var showingVerificationAlert = false
     @State private var showingWalletConnect = false
+    @State private var isLoadingEnsNames = false
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Subject ENS")) {
-                    TextField("example.eth", text: $subjectEns)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .onChange(of: subjectEns) { oldValue, newValue in
-                            try? KeychainManager.shared.storeSubjectEns(newValue)
-                            if oldValue != newValue {
-                                verifiedOwner = nil
-                                try? KeychainManager.shared.deleteVerifiedEnsOwner()
-                            }
+                Section(header: Text("Select ENS name and update required fields")) {
+                    // ENS Names Chips
+                    if ensNames.isEmpty && !isLoadingEnsNames {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+                            Text(walletManager.isConnected ? "No ENS names found for this wallet" : "Connect wallet to see your ENS names")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.vertical, 4)
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                // ENS name chips
+                                ForEach(ensNames, id: \.self) { ensName in
+                                    Button(action: {
+                                        selectEns(ensName)
+                                    }) {
+                                        Text(ensName)
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(selectedEns == ensName ? .white : .primary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(selectedEns == ensName ? Color.blue : Color.gray.opacity(0.1))
+                                            .cornerRadius(16)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    
+                    if isLoadingEnsNames {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Loading ENS names...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 4)
+                    }
                     
                     if walletManager.isConnected, let address = walletManager.walletAddress {
                         HStack {
@@ -68,10 +102,10 @@ struct MyFieldsView: View {
                                 Text("Connect Wallet")
                             }
                         }
-                        .disabled(subjectEns.isEmpty)
+                        .disabled(selectedEns.isEmpty)
                     }
                     
-                    if walletManager.isConnected {
+                    if walletManager.isConnected && !selectedEns.isEmpty {
                         Button(action: {
                             verifyOwnershipWithWallet()
                         }) {
@@ -83,7 +117,7 @@ struct MyFieldsView: View {
                                 Text(isVerifying ? "Verifying..." : verifiedOwner != nil ? "Re-verify Ownership" : "Verify Ownership with Wallet")
                             }
                         }
-                        .disabled(isVerifying || subjectEns.isEmpty)
+                        .disabled(isVerifying)
                     }
                     
                     if let error = verificationError {
@@ -94,7 +128,16 @@ struct MyFieldsView: View {
                 }
                 
                 Section(header: Text("Personal Fields")) {
-                    if verifiedOwner == nil {
+                    if selectedEns.isEmpty {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("Select an ENS name above to manage fields")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    } else if verifiedOwner == nil {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
@@ -112,7 +155,7 @@ struct MyFieldsView: View {
                             onSave: { newValue in
                                 viewModel.save(field: fieldType, value: newValue)
                             },
-                            isDisabled: verifiedOwner == nil
+                            isDisabled: verifiedOwner == nil || selectedEns.isEmpty
                         )
                     }
                 }
@@ -153,9 +196,28 @@ struct MyFieldsView: View {
             }
             .navigationTitle("My Fields")
             .onAppear {
-                loadSubjectEns()
+                loadEnsNames()
+                loadSelectedEns()
                 loadVerifiedOwner()
                 viewModel.loadFields()
+                
+                // Fetch ENS names when wallet connects
+                if walletManager.isConnected {
+                    fetchEnsNamesFromWallet()
+                }
+            }
+            .onChange(of: walletManager.isConnected) { oldValue, newValue in
+                if newValue {
+                    fetchEnsNamesFromWallet()
+                } else {
+                    // Clear ENS names when wallet disconnects (security)
+                    ensNames = []
+                    selectedEns = ""
+                    verifiedOwner = nil
+                    try? KeychainManager.shared.storeEnsNames([])
+                    try? KeychainManager.shared.storeSubjectEns("")
+                    try? KeychainManager.shared.deleteVerifiedEnsOwner()
+                }
             }
             .alert("Verify Ownership", isPresented: $showingVerificationAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -173,11 +235,61 @@ struct MyFieldsView: View {
         }
     }
     
-    private func loadSubjectEns() {
+    private func loadEnsNames() {
         do {
-            subjectEns = try KeychainManager.shared.retrieveSubjectEns() ?? ""
+            ensNames = try KeychainManager.shared.retrieveEnsNames()
         } catch {
-            print("Error loading subject ENS: \(error)")
+            print("Error loading ENS names: \(error)")
+            ensNames = []
+        }
+    }
+    
+    private func loadSelectedEns() {
+        do {
+            selectedEns = try KeychainManager.shared.retrieveSubjectEns() ?? ""
+        } catch {
+            print("Error loading selected ENS: \(error)")
+            selectedEns = ""
+        }
+    }
+    
+    private func selectEns(_ ensName: String) {
+        selectedEns = ensName
+        try? KeychainManager.shared.storeSubjectEns(ensName)
+        verifiedOwner = nil
+        try? KeychainManager.shared.deleteVerifiedEnsOwner()
+    }
+    
+    private func fetchEnsNamesFromWallet() {
+        guard let address = walletManager.walletAddress else { return }
+        
+        isLoadingEnsNames = true
+        Task {
+            do {
+                let fetchedNames = try await APIClient.shared.fetchEnsNames(for: address)
+                
+                await MainActor.run {
+                    // Only use names fetched from the wallet (security: no manual additions)
+                    ensNames = fetchedNames
+                    try? KeychainManager.shared.storeEnsNames(ensNames)
+                    
+                    // Auto-select first name if none selected
+                    if selectedEns.isEmpty, let first = ensNames.first {
+                        selectEns(first)
+                    } else if let current = selectedEns, !ensNames.contains(current) {
+                        // If current selection is not in the fetched list, clear it
+                        selectedEns = ""
+                        try? KeychainManager.shared.storeSubjectEns("")
+                    }
+                    
+                    isLoadingEnsNames = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("Error fetching ENS names: \(error)")
+                    isLoadingEnsNames = false
+                }
+            }
         }
     }
     
@@ -218,7 +330,7 @@ struct MyFieldsView: View {
     }
     
     private func verifyOwnershipWithWallet() {
-        guard !subjectEns.isEmpty,
+        guard !selectedEns.isEmpty,
               walletManager.isConnected,
               let walletAddress = walletManager.walletAddress else {
             verificationError = "Please connect your wallet first"
@@ -230,7 +342,7 @@ struct MyFieldsView: View {
         
         Task {
             do {
-                let info = try await APIClient.shared.resolveEnsOwner(subjectEns)
+                let info = try await APIClient.shared.resolveEnsOwner(selectedEns)
                 
                 guard let ensOwner = info.owner, info.isValid else {
                     await MainActor.run {
@@ -248,11 +360,11 @@ struct MyFieldsView: View {
                     return
                 }
                 
-                let message = walletManager.createOwnershipMessage(ensName: subjectEns)
+                let message = walletManager.createOwnershipMessage(ensName: selectedEns)
                 let signature = try await walletManager.signMessage(message)
                 
                 let verification = try await APIClient.shared.verifyOwnership(
-                    ensName: subjectEns,
+                    ensName: selectedEns,
                     address: walletAddress,
                     signature: signature,
                     message: message
