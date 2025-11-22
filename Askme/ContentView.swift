@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  AskMe
+//  Askme
 //
 //  Created by Franz Quarshie on 11/22/2025.
 //

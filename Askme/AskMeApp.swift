@@ -1,6 +1,6 @@
 //
 //  AskMeApp.swift
-//  AskMe
+//  Askme
 //
 //  Created by Franz Quarshie on 11/22/2025.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct AskMeApp: App {
+struct AskmeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
