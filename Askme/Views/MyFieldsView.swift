@@ -407,30 +407,6 @@ struct FieldRowView: View {
                     Text(value)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
-                    Group {
-                        let (valueHash, fieldHash) = CryptoUtils.computeHashes(field: fieldType, value: value)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("valueHash:")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Text(valueHash)
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.blue)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            
-                            Text("fieldHash:")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Text(fieldHash)
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.blue)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    }
                 } else {
                     Text("Not set")
                         .font(.subheadline)
